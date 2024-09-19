@@ -19,8 +19,11 @@ public class GameLogic : MonoBehaviour
     List<int> dealerHand = new List<int>();
     private int dealerValue; // Value of the dealer's hand
 
-    public Button hitButton;
-    public Button standButton;
+    private GameObject flippedCard;
+    private Vector2Int flippedCardValue;
+
+    public GameObject hitButton;
+    public GameObject standButton;
 
     public GameObject wagerInput;
     public GameObject wagerText;
@@ -31,6 +34,12 @@ public class GameLogic : MonoBehaviour
     public Sprite cardBack;
     private Vector3 cardSpawn = new Vector3(0f, 0f, 0f);
     private int cardOrder = 0;
+
+    public GameObject topOfDeck;
+
+    private void Start() {
+        topOfDeck.GetComponent<SpriteRenderer>().sprite = cardBack;
+    }
 
     public void Deal() {
         bool success = int.TryParse(wagerInput.GetComponent<TMP_InputField>().text, out int input);
@@ -95,15 +104,19 @@ public class GameLogic : MonoBehaviour
     private void AddCard(Vector2Int card, List<int> hand, bool isPlayer, bool isFlipped) {
         // TODO Display add card animation
 
+        // Instantiate new card object
+        GameObject newCard = Instantiate(cardPrefab, cardSpawn, Quaternion.identity);
+
+        // Give correct properties to new card
         Sprite sprite;
         if(isFlipped) {
             sprite = cardBack;
+            flippedCard = newCard;
+            flippedCardValue = card;
         } else {
             sprite = cardSprites[(card.x * card.y)-1];
         }
 
-        // Instantiate new card object
-        GameObject newCard = Instantiate(cardPrefab, cardSpawn, Quaternion.identity);
         SpriteRenderer sr = newCard.GetComponent<SpriteRenderer>();
         sr.sprite = sprite;
         sr.sortingOrder = cardOrder;
@@ -172,9 +185,7 @@ public class GameLogic : MonoBehaviour
 
     public void Stand() {
         SetPlayerActions(false);
-
-        // TODO
-        // Flip over first dealer card
+        FlipDealerCard();
 
         // Draw cards until dealer beats player or busts
         while(dealerValue <= 16) {
@@ -201,13 +212,20 @@ public class GameLogic : MonoBehaviour
 
     // Enable or disable Hit and Stand buttons
     private void SetPlayerActions(bool isActive) {
-        hitButton.interactable = isActive;
-        standButton.interactable = isActive;
+        hitButton.SetActive(isActive);
+        standButton.SetActive(isActive);
     }
 
     private void DisplayAlert(string message) {
         // TODO
         Debug.Log(message);
+    }
+
+    // Replaces the sprite of the dealer's first card with
+    // the appropriate card sprite
+    private void FlipDealerCard() {
+        Sprite newSprite = cardSprites[(flippedCardValue.x * flippedCardValue.y) - 1];
+        flippedCard.GetComponent<SpriteRenderer>().sprite = newSprite;
     }
 
     // Display win message
