@@ -71,7 +71,7 @@ public class GameLogic : MonoBehaviour
             // Disable input field
             wagerInput.SetActive(false);
             // Enable wager text
-            wagerText.GetComponent<TMP_Text>().text = "Current Wager: $" + wager;
+            wagerText.GetComponent<TMP_Text>().text = "CURRENT WAGER: $" + wager;
             wagerText.SetActive(true);
 
             // Enable value displays
@@ -242,7 +242,7 @@ public class GameLogic : MonoBehaviour
         } else if(dealerValue < playerValue) {
             StartCoroutine(GameEnd("YOUR HAND BEAT THE DEALER'S!", 1));
         } else {
-            StartCoroutine(GameEnd("TIE!", 0));
+            StartCoroutine(GameEnd("YOUR HANDS MATCHED.", 0));
         }
     }
 
@@ -306,9 +306,9 @@ public class GameLogic : MonoBehaviour
         isStanding = false;
 
         string header;
-        if(multiplier > 1) {
+        if(multiplier > 0) {
             header = "WIN";
-        } else if(multiplier < 1) {
+        } else if(multiplier < 0) {
             header = "LOSE";
         } else {
             header = "TIE";
