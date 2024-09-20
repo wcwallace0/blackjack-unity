@@ -94,11 +94,13 @@ public class GameLogic : MonoBehaviour
         // Check if player hand or dealer hand is a blackjack
         if(playerValue == 21) {
             if(dealerValue == 21) {
+                yield return FlipDealerCard();
                 StartCoroutine(GameEnd("BOTH THE PLAYER AND THE DEALER GOT A BLACKJACK!", 0));
             } else {
                 StartCoroutine(GameEnd("YOU GOT A BLACKJACK!", 1.5f));
             }
         } else if (dealerValue == 21) {
+            yield return FlipDealerCard();
             StartCoroutine(GameEnd("THE DEALER GOT A BLACKJACK...", -1));
         } else {
             SetPlayerActions(true);
@@ -227,8 +229,6 @@ public class GameLogic : MonoBehaviour
         FlipDealerCard();
         isStanding = true;
 
-        yield return new WaitForSeconds(2f);
-
         // Draw cards until dealer beats player or busts
         while(dealerValue <= 16) {
             yield return AddCard(DrawCard(), dealerHand, false, false);
@@ -271,12 +271,14 @@ public class GameLogic : MonoBehaviour
 
     // Replaces the sprite of the dealer's first card with
     // the appropriate card sprite
-    private void FlipDealerCard() {
+    private IEnumerator FlipDealerCard() {
         Sprite newSprite = cardSprites[13*(flippedCardValue.y-1) + flippedCardValue.x - 1];
         flippedCard.GetComponent<SpriteRenderer>().sprite = newSprite;
 
         // Update dealer value display to include the flipped card
         dValueText.text = "DEALER VALUE: " + dealerValue;
+
+        yield return new WaitForSeconds(2f);
     }
 
     // Display win message
