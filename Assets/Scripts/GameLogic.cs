@@ -31,10 +31,22 @@ public class GameLogic : MonoBehaviour
 
     public GameObject cardPrefab;
     public Sprite[] cardSprites;
-    private Vector3 cardSpawn = new Vector3(0f, 0f, 0f);
     private int cardOrder = 0;
 
+    // Each new card will move to the position of this GameObject
+    public GameObject dealerTarget;
+    public GameObject playerTarget;
+    public float timeBetweenCards;
+
+    public TMP_Text pValueText;
+    public TMP_Text dValueText;
+
     public GameObject topOfDeck;
+
+    private bool isStanding;
+
+    public float winTime;
+    public float alertTime;
 
     private void Start() {
         topOfDeck.GetComponent<SpriteRenderer>().sprite = MenuController.chosenCardBackSprite;
@@ -43,11 +55,11 @@ public class GameLogic : MonoBehaviour
     public void Deal() {
         bool success = int.TryParse(wagerInput.GetComponent<TMP_InputField>().text, out int input);
         if(!success) {
-            DisplayAlert("Your wager must be a number.");
+            StartCoroutine(DisplayAlert("Your wager must be a number.", alertTime));
         } else if(input <= 0) {
-            DisplayAlert("Your wager must be more than $0.");
+            StartCoroutine(DisplayAlert("Your wager must be more than $0.", alertTime));
         } else if(input > wallet) {
-            DisplayAlert("You don't have enough money for that wager!");
+            StartCoroutine(DisplayAlert("You don't have enough money for that wager!", alertTime));
         } else {
             wager = input;
             // Disable input field
@@ -56,32 +68,32 @@ public class GameLogic : MonoBehaviour
             wagerText.GetComponent<TMP_Text>().text = "Current Wager: $" + wager;
             wagerText.SetActive(true);
 
-            SetupGame();
+            // Enable value displays
+            pValueText.enabled = true;
+            dValueText.enabled = true;
+
+            StartCoroutine(SetupGame());
         }
     }
 
-    private void SetupGame() {
-        // TODO
-        // Collect wager from user input
-        // Hide wager UI
-
+    private IEnumerator SetupGame() {
         // Draw 2 cards for the dealer hand
-        AddCard(DrawCard(), dealerHand, false, true);
-        AddCard(DrawCard(), dealerHand, false, false);
+        yield return AddCard(DrawCard(), dealerHand, false, true);
+        yield return AddCard(DrawCard(), dealerHand, false, false);
 
         // Draw 2 cards for the player hand
-        AddCard(DrawCard(), playerHand, true, false);
-        AddCard(DrawCard(), playerHand, true, false);
+        yield return AddCard(DrawCard(), playerHand, true, false);
+        yield return AddCard(DrawCard(), playerHand, true, false);
 
         // Check if player hand or dealer hand is a blackjack
         if(playerValue == 21) {
             if(dealerValue == 21) {
-                GameEnd("Tie! Both the player and the dealer got a blackjack!", 0);
+                StartCoroutine(GameEnd("Tie! Both the player and the dealer got a blackjack!", 0));
             } else {
-                GameEnd("You got a blackjack!", 1.5f);
+                StartCoroutine(GameEnd("You got a blackjack!", 1.5f));
             }
         } else if (dealerValue == 21) {
-            GameEnd("The dealer got a blackjack...", -1);
+            StartCoroutine(GameEnd("The dealer got a blackjack...", -1));
         } else {
             SetPlayerActions(true);
         }
@@ -100,11 +112,18 @@ public class GameLogic : MonoBehaviour
     // Adds a new card to the specified hand
     // If new card causes the hand to bust, attempts to reduce aces
     // Displays card animation, moving from deck to hand
-    private void AddCard(Vector2Int card, List<int> hand, bool isPlayer, bool isFlipped) {
-        // TODO Display add card animation
-
+    private IEnumerator AddCard(Vector2Int card, List<int> hand, bool isPlayer, bool isFlipped) {
         // Instantiate new card object
-        GameObject newCard = Instantiate(cardPrefab, cardSpawn, Quaternion.identity);
+        GameObject newCard;
+        if(isPlayer) {
+            newCard = Instantiate(cardPrefab, topOfDeck.transform.position, Quaternion.identity);
+            newCard.GetComponent<Card>().target = playerTarget.transform.position;
+            playerTarget.transform.Translate(new Vector3(0.7f, 0f, 0f));
+        } else {
+            newCard = Instantiate(cardPrefab, topOfDeck.transform.position, Quaternion.identity);
+            newCard.GetComponent<Card>().target = dealerTarget.transform.position;
+            dealerTarget.transform.Translate(new Vector3(0.7f, 0f, 0f));
+        }
 
         // Give correct properties to new card
         Sprite sprite;
@@ -113,16 +132,13 @@ public class GameLogic : MonoBehaviour
             flippedCard = newCard;
             flippedCardValue = card;
         } else {
-            sprite = cardSprites[(card.x * card.y)-1];
+            sprite = cardSprites[13*(card.y-1) + card.x - 1];
         }
 
         SpriteRenderer sr = newCard.GetComponent<SpriteRenderer>();
         sr.sprite = sprite;
         sr.sortingOrder = cardOrder;
-        cardSpawn.x += 0.7f;
         cardOrder++;
-
-        Debug.Log("adding new card " + card.x + " to hand");
 
         int newValue = card.x;
         if(card.x == 1) {
@@ -138,19 +154,24 @@ public class GameLogic : MonoBehaviour
                 ReduceAces(playerHand, true);
             }
 
-            // TODO Update player value display
+            // Update player value display
+            pValueText.text = "PLAYER VALUE: " + playerValue;
         } else {
             dealerValue += newValue;
             if(dealerValue > 21) {
                 ReduceAces(dealerHand, false);
             }
 
-            // TODO Update player value display
+            // Update dealer value display
+            if(isStanding) {
+                dValueText.text = "DEALER VALUE: " + dealerValue;
+            } else {
+                dValueText.text = "DEALER VALUE: ?? + " + (dealerValue-dealerHand[0]);
+            }
         }
 
-        Debug.Log("new hands");
-        Debug.Log("[" + string.Join(", ", playerHand) + "]");
-        Debug.Log("[" + string.Join(", ", dealerHand) + "]");
+        // Give some breathing room
+        yield return new WaitForSeconds(timeBetweenCards);
     }
 
     // Attempts to bring the value of the given hand below 21 by
@@ -169,40 +190,53 @@ public class GameLogic : MonoBehaviour
         }
     }
 
-    public void Hit() {
+    // Called when the HIT button is pressed
+    public void HitButton() {
+        StartCoroutine(Hit());
+    }
+
+    private IEnumerator Hit() {
         SetPlayerActions(false);
 
-        AddCard(DrawCard(), playerHand, true, false);
+        yield return AddCard(DrawCard(), playerHand, true, false);
 
         // Determine status of player
         if(playerValue > 21) {
-            GameEnd("Bust!", -1);
+            StartCoroutine(GameEnd("Bust!", -1));
         } else {
             SetPlayerActions(true);
         }
     }
 
-    public void Stand() {
+    // Called when the STAND button is pressed
+    public void StandButton() {
+        StartCoroutine(Stand());
+    }
+
+    private IEnumerator Stand() {
         SetPlayerActions(false);
+
+        yield return new WaitForSeconds(0.5f);
+
         FlipDealerCard();
+        isStanding = true;
+
+        yield return new WaitForSeconds(1f);
 
         // Draw cards until dealer beats player or busts
         while(dealerValue <= 16) {
-            AddCard(DrawCard(), dealerHand, false, false);
-
-            // TODO
-            // Wait some time?
+            yield return AddCard(DrawCard(), dealerHand, false, false);
         }
 
         // Check which hand wins
         if(dealerValue > 21) {
-            GameEnd("The dealer busted!", 1);
+            StartCoroutine(GameEnd("The dealer busted!", 1));
         } else if(dealerValue > playerValue) {
-            GameEnd("Dealer wins!", -1);
+            StartCoroutine(GameEnd("Dealer wins!", -1));
         } else if(dealerValue < playerValue) {
-            GameEnd("Player wins!", 1);
+            StartCoroutine(GameEnd("Player wins!", 1));
         } else {
-            GameEnd("Tie!", 0);
+            StartCoroutine(GameEnd("Tie!", 0));
         }
     }
 
@@ -215,34 +249,54 @@ public class GameLogic : MonoBehaviour
         standButton.SetActive(isActive);
     }
 
-    private void DisplayAlert(string message) {
+    private IEnumerator DisplayAlert(string message, float displayTime) {
         // TODO
         Debug.Log(message);
+        yield return new WaitForSeconds(displayTime);
+        // Delete alert
     }
 
     // Replaces the sprite of the dealer's first card with
     // the appropriate card sprite
     private void FlipDealerCard() {
-        Sprite newSprite = cardSprites[(flippedCardValue.x * flippedCardValue.y) - 1];
+        Sprite newSprite = cardSprites[13*(flippedCardValue.y-1) + flippedCardValue.x - 1];
         flippedCard.GetComponent<SpriteRenderer>().sprite = newSprite;
+
+        // Update dealer value display to include the flipped card
+        dValueText.text = "DEALER VALUE: " + dealerValue;
     }
 
     // Display win message
     // Determine the amount to be given back to player
     // Update wallet display
-    private void GameEnd(string message, float multiplier) {
-        DisplayAlert(message);
-        wallet += (int) (wager * multiplier);
-        walletText.text = "Wallet: $" + wallet;
-
+    private IEnumerator GameEnd(string message, float multiplier) {
         // Clear out hands and values
         playerHand.Clear();
         dealerHand.Clear();
         playerValue = 0;
         dealerValue = 0;
 
-        // TODO display
+        // Enable value displays
+        pValueText.enabled = false;
+        dValueText.enabled = false;
+
+        // Clear all Cards from scene
+        GameObject[] cards = GameObject.FindGameObjectsWithTag("Card");
+        foreach(GameObject card in cards) {
+            Destroy(card);
+        }
+
+        isStanding = false;
+
+        StartCoroutine(DisplayAlert(message, winTime));
+        yield return new WaitForSeconds(winTime);
+
+        // Bring back wager input
         wagerInput.SetActive(true);
         wagerText.SetActive(false);
+
+        // Update new wallet amount
+        wallet += (int) (wager * multiplier);
+        walletText.text = "Wallet: $" + wallet;
     }
 }
