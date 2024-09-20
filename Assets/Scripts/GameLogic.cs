@@ -226,7 +226,7 @@ public class GameLogic : MonoBehaviour
 
         yield return new WaitForSeconds(1f);
 
-        FlipDealerCard();
+        yield return FlipDealerCard();
         isStanding = true;
 
         // Draw cards until dealer beats player or busts
@@ -291,7 +291,9 @@ public class GameLogic : MonoBehaviour
         playerValue = 0;
         dealerValue = 0;
 
-        // Enable value displays
+        // Disable and clear value displays
+        pValueText.text = "PLAYER VALUE: 0";
+        dValueText.text = "DEALER VALUE: 0";
         pValueText.enabled = false;
         dValueText.enabled = false;
 
