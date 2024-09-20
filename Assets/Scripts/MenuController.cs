@@ -13,8 +13,17 @@ public class MenuController : MonoBehaviour
     private DepthOfField dof;
     public GameObject menu;
 
+    public GameObject cardBackMenu;
+    public GameObject outline;
+    public Sprite[] cardBackSprites;
+
+    public static Sprite chosenCardBackSprite;
+
+    public GameObject rulesMenu;
+
     private void Start() {
         dof = blur.profile.GetSetting<DepthOfField>();
+        chosenCardBackSprite = cardBackSprites[0];
     }
 
     private void FixedUpdate() {
@@ -30,8 +39,19 @@ public class MenuController : MonoBehaviour
         StartCoroutine(WaitForFade());
     }
 
-    public void SetCardBack() {
-        topOfDeck.sprite = null;
+    public void SetCardBackMenu(bool isActive) {
+        cardBackMenu.SetActive(isActive);
+    }
+
+    public void SetCardBack(int cardChosen) {
+        Sprite newSprite = cardBackSprites[cardChosen+1];
+        topOfDeck.sprite = newSprite;
+        chosenCardBackSprite = newSprite;
+        outline.GetComponent<RectTransform>().anchoredPosition = new Vector3(cardChosen*96f, -35.6f, 0); // HORRIBLE
+    }
+
+    public void SetRulesMenu(bool isActive) {
+        rulesMenu.SetActive(isActive);
     }
 
     public IEnumerator WaitForFade() {

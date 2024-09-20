@@ -31,14 +31,13 @@ public class GameLogic : MonoBehaviour
 
     public GameObject cardPrefab;
     public Sprite[] cardSprites;
-    public Sprite cardBack;
     private Vector3 cardSpawn = new Vector3(0f, 0f, 0f);
     private int cardOrder = 0;
 
     public GameObject topOfDeck;
 
     private void Start() {
-        topOfDeck.GetComponent<SpriteRenderer>().sprite = cardBack;
+        topOfDeck.GetComponent<SpriteRenderer>().sprite = MenuController.chosenCardBackSprite;
     }
 
     public void Deal() {
@@ -110,7 +109,7 @@ public class GameLogic : MonoBehaviour
         // Give correct properties to new card
         Sprite sprite;
         if(isFlipped) {
-            sprite = cardBack;
+            sprite = MenuController.chosenCardBackSprite;
             flippedCard = newCard;
             flippedCardValue = card;
         } else {
