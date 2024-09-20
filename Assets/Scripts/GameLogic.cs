@@ -35,7 +35,9 @@ public class GameLogic : MonoBehaviour
 
     // Each new card will move to the position of this GameObject
     public GameObject dealerTarget;
+    private Vector3 dealerTargetInitial;
     public GameObject playerTarget;
+    private Vector3 playerTargetInitial;
     public float timeBetweenCards;
 
     public TMP_Text pValueText;
@@ -47,19 +49,23 @@ public class GameLogic : MonoBehaviour
 
     public float winTime;
     public float alertTime;
+    public GameObject alertPrefab;
+    public Transform canvas;
 
     private void Start() {
         topOfDeck.GetComponent<SpriteRenderer>().sprite = MenuController.chosenCardBackSprite;
+        dealerTargetInitial = dealerTarget.transform.position;
+        playerTargetInitial = playerTarget.transform.position;
     }
 
     public void Deal() {
         bool success = int.TryParse(wagerInput.GetComponent<TMP_InputField>().text, out int input);
         if(!success) {
-            StartCoroutine(DisplayAlert("Your wager must be a number.", alertTime));
+            StartCoroutine(DisplayAlert("ALERT", "YOUR WAGER MUST BE A NUMBER.", alertTime));
         } else if(input <= 0) {
-            StartCoroutine(DisplayAlert("Your wager must be more than $0.", alertTime));
+            StartCoroutine(DisplayAlert("ALERT", "YOUR WAGER MUST BE MORE THAN $0.", alertTime));
         } else if(input > wallet) {
-            StartCoroutine(DisplayAlert("You don't have enough money for that wager!", alertTime));
+            StartCoroutine(DisplayAlert("ALERT", "YOU DON'T HAVE ENOUGH MONEY FOR THAT WAGER!", alertTime));
         } else {
             wager = input;
             // Disable input field
@@ -88,12 +94,12 @@ public class GameLogic : MonoBehaviour
         // Check if player hand or dealer hand is a blackjack
         if(playerValue == 21) {
             if(dealerValue == 21) {
-                StartCoroutine(GameEnd("Tie! Both the player and the dealer got a blackjack!", 0));
+                StartCoroutine(GameEnd("BOTH THE PLAYER AND THE DEALER GOT A BLACKJACK!", 0));
             } else {
-                StartCoroutine(GameEnd("You got a blackjack!", 1.5f));
+                StartCoroutine(GameEnd("YOU GOT A BLACKJACK!", 1.5f));
             }
         } else if (dealerValue == 21) {
-            StartCoroutine(GameEnd("The dealer got a blackjack...", -1));
+            StartCoroutine(GameEnd("THE DEALER GOT A BLACKJACK...", -1));
         } else {
             SetPlayerActions(true);
         }
@@ -202,7 +208,7 @@ public class GameLogic : MonoBehaviour
 
         // Determine status of player
         if(playerValue > 21) {
-            StartCoroutine(GameEnd("Bust!", -1));
+            StartCoroutine(GameEnd("YOU BUSTED...", -1));
         } else {
             SetPlayerActions(true);
         }
@@ -216,12 +222,12 @@ public class GameLogic : MonoBehaviour
     private IEnumerator Stand() {
         SetPlayerActions(false);
 
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(1f);
 
         FlipDealerCard();
         isStanding = true;
 
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(2f);
 
         // Draw cards until dealer beats player or busts
         while(dealerValue <= 16) {
@@ -230,13 +236,13 @@ public class GameLogic : MonoBehaviour
 
         // Check which hand wins
         if(dealerValue > 21) {
-            StartCoroutine(GameEnd("The dealer busted!", 1));
+            StartCoroutine(GameEnd("THE DEALER BUSTED!", 1));
         } else if(dealerValue > playerValue) {
-            StartCoroutine(GameEnd("Dealer wins!", -1));
+            StartCoroutine(GameEnd("THE DEALER'S HAND BEAT YOURS...", -1));
         } else if(dealerValue < playerValue) {
-            StartCoroutine(GameEnd("Player wins!", 1));
+            StartCoroutine(GameEnd("YOUR HAND BEAT THE DEALER'S!", 1));
         } else {
-            StartCoroutine(GameEnd("Tie!", 0));
+            StartCoroutine(GameEnd("TIE!", 0));
         }
     }
 
@@ -249,11 +255,18 @@ public class GameLogic : MonoBehaviour
         standButton.SetActive(isActive);
     }
 
-    private IEnumerator DisplayAlert(string message, float displayTime) {
+    private IEnumerator DisplayAlert(string header, string message, float displayTime) {
         // TODO
-        Debug.Log(message);
+        GameObject alertBox = Instantiate(alertPrefab);
+        alertBox.transform.SetParent(canvas, false);
+        // get children
+        TMP_Text[] children = alertBox.GetComponentsInChildren<TMP_Text>();
+        children[0].text = header;
+        children[1].text = message;
+
         yield return new WaitForSeconds(displayTime);
-        // Delete alert
+        
+        Destroy(alertBox);
     }
 
     // Replaces the sprite of the dealer's first card with
@@ -280,6 +293,10 @@ public class GameLogic : MonoBehaviour
         pValueText.enabled = false;
         dValueText.enabled = false;
 
+        // Reset card target positions
+        dealerTarget.transform.position = dealerTargetInitial;
+        playerTarget.transform.position = playerTargetInitial;
+
         // Clear all Cards from scene
         GameObject[] cards = GameObject.FindGameObjectsWithTag("Card");
         foreach(GameObject card in cards) {
@@ -288,7 +305,15 @@ public class GameLogic : MonoBehaviour
 
         isStanding = false;
 
-        StartCoroutine(DisplayAlert(message, winTime));
+        string header;
+        if(multiplier > 1) {
+            header = "WIN";
+        } else if(multiplier < 1) {
+            header = "LOSE";
+        } else {
+            header = "TIE";
+        }
+        StartCoroutine(DisplayAlert(header, message, winTime));
         yield return new WaitForSeconds(winTime);
 
         // Bring back wager input

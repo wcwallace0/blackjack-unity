@@ -1512,6 +1512,8 @@ MonoBehaviour:
   topOfDeck: {fileID: 195005235}
   winTime: 5
   alertTime: 2
+  alertPrefab: {fileID: 4535255281207039710, guid: 20af675af144cd0429d18ee8f20d2629, type: 3}
+  canvas: {fileID: 434399118}
 --- !u!4 &818013495
 Transform:
   m_ObjectHideFlags: 0
