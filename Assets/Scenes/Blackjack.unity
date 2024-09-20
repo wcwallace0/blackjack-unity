@@ -1447,6 +1447,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hitButton: {fileID: 1088613664}
   standButton: {fileID: 2070941076}
+  dealButton: {fileID: 1847982587}
   wagerInput: {fileID: 1702808253}
   wagerText: {fileID: 650785750}
   walletText: {fileID: 4168315}

@@ -24,6 +24,7 @@ public class GameLogic : MonoBehaviour
 
     public GameObject hitButton;
     public GameObject standButton;
+    public GameObject dealButton;
 
     public GameObject wagerInput;
     public GameObject wagerText;
@@ -59,6 +60,7 @@ public class GameLogic : MonoBehaviour
     }
 
     public void Deal() {
+        dealButton.SetActive(false);
         bool success = int.TryParse(wagerInput.GetComponent<TMP_InputField>().text, out int input);
         if(!success) {
             StartCoroutine(DisplayAlert("ALERT", "YOUR WAGER MUST BE A NUMBER.", alertTime));
@@ -327,5 +329,8 @@ public class GameLogic : MonoBehaviour
         // Update new wallet amount
         wallet += (int) (wager * multiplier);
         walletText.text = "Wallet: $" + wallet;
+
+        // Reenable Deal button
+        dealButton.SetActive(true);
     }
 }
